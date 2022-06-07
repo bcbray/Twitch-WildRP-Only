@@ -1,21 +1,21 @@
 {
-  "name": "twitch-nopixel-only",
+  "name": "twitch-wildrp-only",
   "version": "1.0.0",
-  "description": "NoPixel-specific Twitch filtering",
+  "description": "WildRP-specific Twitch filtering",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Vaeb/Twitch-NoPixel-Only.git"
+    "url": "git+https://github.com/bcbray/Twitch-WildRP-Only.git"
   },
-  "author": "Vaeb",
+  "author": "bcbray & Vaeb",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/Vaeb/Twitch-NoPixel-Only/issues"
+    "url": "https://github.com/bcbray/Twitch-WildRP-Only/issues"
   },
-  "homepage": "https://github.com/Vaeb/Twitch-NoPixel-Only#readme",
+  "homepage": "https://github.com/bcbray/Twitch-WildRP-Only#readme",
   "devDependencies": {
     "eslint": "^7.2.0",
     "eslint-config-airbnb": "^18.1.0",

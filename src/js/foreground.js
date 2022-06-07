@@ -1,7 +1,7 @@
 /* eslint-disable no-await-in-loop */
 /*
- * Twitch NoPixel Only
- * Created by Vaeb
+ * Twitch WildRP Only
+ * Created by bcbray & Vaeb
  */
 
 const startDate = new Date();
@@ -12,7 +12,7 @@ const dateStr = (date = new Date()) =>
         .replace('T', ' ')
         .replace(/\.\w+$/, '');
 
-console.log(`[${dateStr()}] [TNO] Loading Twitch NoPixel Only...`);
+console.log(`[${dateStr()}] [TWRPO] Loading Twitch WildRP Only...`);
 
 const getStorage = (keys, defaultVal = undefined) =>
     new Promise((resolve) => {
@@ -43,11 +43,11 @@ const setStorage = async (key, val) => chrome.storage.local.set({ [key]: val });
 const remStorage = async key => chrome.storage.local.remove(key);
 
 // eslint-disable-next-line
-window.tnoGet = getStorage;
+window.twrpoGet = getStorage;
 // eslint-disable-next-line
-window.tnoSet = setStorage;
+window.twrpoSet = setStorage;
 // eslint-disable-next-line
-window.tnoRem = remStorage;
+window.twrpoRem = remStorage;
 
 String.prototype.indexOfRegex = function (regex, startPos) {
     const indexOf = this.substring(startPos || 0).search(regex);
@@ -83,7 +83,7 @@ const waitForElement = async (selector, maxTime = Infinity) => {
     return el;
 };
 
-const twitchGtaUrl = /^https:\/\/www\.twitch\.tv\/directory\/game\/Grand%20Theft%20Auto%20V(?!\/videos|\/clips)/;
+const twitchRdr2Url = /^https:\/\/www\.twitch\.tv\/directory\/game\/Red%20Dead%20Redemption%202(?!\/videos|\/clips)/;
 
 // Settings
 
@@ -100,7 +100,7 @@ let onPage = false;
 let interval;
 
 let wasZero = false;
-let filterStreamFaction = 'allnopixel';
+let filterStreamFaction = 'allwildrp';
 let filterStreamText = '';
 let filterStreamTextLookup = '';
 let isFilteringText = false;
@@ -111,7 +111,7 @@ let useColorsLight = {};
 
 const FSTATES = {
     remove: 0,
-    nopixel: 1,
+    wildrp: 1,
     other: 2,
     hide: 3,
 };
@@ -124,15 +124,15 @@ const SORTS = {
 };
 
 const REAL_VIEWS = new Map([ // Key represents alwaysRoll value
-    [false, ['allnopixel', 'alltwitch']],
+    [false, ['allwildrp', 'alltwitch']],
     [true, ['alltwitch']],
 ]);
 
 let realViews = REAL_VIEWS.get(false); // Views with real-stream elements
 
-const universalFactions = ['allnopixel', 'alltwitch'];
+const universalFactions = ['allwildrp', 'alltwitch'];
 
-const onDefaultView = () => filterStreamFaction === 'allnopixel' && isFilteringText === false;
+const onDefaultView = () => filterStreamFaction === 'allwildrp' && isFilteringText === false;
 
 const onRealView = () => realViews.includes(filterStreamFaction) && isFilteringText === false;
 
@@ -140,66 +140,10 @@ const onUniversalFaction = () => universalFactions.includes(filterStreamFaction)
 
 // Does view contain multiple actual RP factions (rather than just a dedicated RP faction)
 // Both real-stream and manual-stream
-const onNpMetaFaction = () => {
-    const npMetaFactions = [...universalFactions, 'othernp', 'publicnp', 'international', 'guessed'];
-    return isFilteringText || npMetaFactions.includes(filterStreamFaction);
+const onWrpMetaFaction = () => {
+    const wrpMetaFactions = [...universalFactions, 'otherwrp', 'guessed'];
+    return isFilteringText || wrpMetaFactions.includes(filterStreamFaction);
 };
-
-// #00A032 #cd843f #b71540 #ff0074 #8854d0
-// fastlane: '#40739e',
-// mersions, koreans, ckr, aztecas
-
-// const useColors = {
-//     leanbois: '#d64f35',
-//     lostmc: '#d23f70',
-//     changgang: '#9b4d75',
-//     vagos: '#dc9461',
-//     gsf: '#5eb847',
-//     ssb: '#7561cf',
-//     esb: '#8580c8',
-//     hoa: '#57bf84',
-//     angels: '#c55ebe',
-//     snakegang: '#39855f',
-//     development: '#a75635',
-//     doc: '#3fc1bf',
-//     // koreans, quickfix, tuner, harmony, mechanic, misfits, aztecas, russians, bbmc
-//     bbmc: '#846f2d',
-//     // mersions: '#cd843f',
-//     police: '#4c9ad1',
-//     medical: '#adbc36',
-//     otherfaction: '#57bf84',
-//     independent: '#57bf84',
-//     othernp: '#ffffff',
-//     other: '#81ecec',
-// };
-
-// const useColors = {
-//     leanbois: '#ff0000',
-//     lostmc: '#7f0000',
-//     changgang: '#4169e1',
-//     vagos: '#ffff00',
-//     gsf: '#2e8b57',
-//     ssb: '#da70d6',
-//     esb: '#d8bfd8',
-//     hoa: '#ffa500',
-//     angels: '#ff1493',
-//     snakegang: '#808000',
-//     development: '#a75635',
-//     doc: '#00ffff',
-//     // lostmc, koreans, quickfix, tuner, harmony, mechanic, misfits, aztecas, russians, bbmc
-//     bbmc: '#eee8aa',
-//     // mersions: '#ff00ff',
-//     police: '#00bfff',
-//     medical: '#7fff00',
-//     otherfaction: '#00fa9a',
-//     independent: '#00fa9a',
-//     othernp: '#ffffff',
-//     other: '#81ecec',
-// };
-
-// const textColors = {
-//     misfits: '#FFF',
-// };
 
 RegExp.escape = function (string) {
     return string.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
@@ -208,9 +152,9 @@ RegExp.escape = function (string) {
 let activateInterval;
 let stopInterval;
 
-const filterStreams = async () => { // Remember: The code here runs upon loading twitch.tv, not the GTAV page. For the latter, use activateInterval.
-    console.log(`[${dateStr()}] Fetching NP stream data...`);
-    const isDeveloper = typeof document.cookie === 'string' && document.cookie.includes('name=admdev');
+const filterStreams = async () => { // Remember: The code here runs upon loading twitch.tv, not the RDR2 page. For the latter, use activateInterval.
+    console.log(`[${dateStr()}] Fetching WRP stream data...`);
+    const isDeveloper = typeof document.cookie === 'string' && document.cookie.includes('name=bcbray');
 
     let live;
     let streamsMap;
@@ -242,9 +186,9 @@ const filterStreams = async () => { // Remember: The code here runs upon loading
         fetchHeaders.append('pragma', 'no-cache');
         fetchHeaders.append('cache-control', 'no-cache');
 
-        // https://vaeb.io:3030 | http://localhost:3029
-        const dataRequest = new Request('https://vaeb.io:3030/live'); // API code is open-source: https://github.com/Vaeb/TNO-Backend
-        // const dataRequest = new Request('http://localhost:3029/live'); // API code is open-source: https://github.com/Vaeb/TNO-Backend
+        // https://twrponly.tc | http://localhost:3029
+        const dataRequest = new Request('https://twrponly.tv/live'); // API code is open-source: https://github.com/bcbray/TWRPO-Backend
+        // const dataRequest = new Request('http://localhost:3029/live'); // API code is open-source: https://github.com/bcbray/TWRPO-Backend
 
         const maxTries = 4;
         for (let i = 0; i < maxTries; i++) {
@@ -282,64 +226,7 @@ const filterStreams = async () => { // Remember: The code here runs upon loading
 
         console.log(`[${dateStr()}] Fetched data!`);
 
-        const streams = live.streams;
-        const numStreamsFb = live.streamsFb.length;
-
-        if (numStreamsFb > 0) {
-            let fbIdx = 0;
-            let addStream = live.streamsFb[fbIdx];
-            for (let i = 0; i < streams.length; i++) {
-                const stream = streams[i];
-                if (addStream.viewers >= stream.viewers) {
-                    streams.splice(i, 0, addStream);
-                    fbIdx++;
-                    if (fbIdx < numStreamsFb) {
-                        addStream = live.streamsFb[fbIdx];
-                    } else {
-                        break;
-                    }
-                }
-            }
-            if (fbIdx < numStreamsFb) {
-                for (let i = fbIdx; i < numStreamsFb; i++) {
-                    streams.push(live.streamsFb[i]);
-                }
-            }
-        }
-
         console.log('live', live);
-        console.log('Checking for permission');
-        // chrome.permissions.request({ origins: ['https://mobile.facebook.com/gaming/*'] }, (granted) => {
-        //     // The callback argument will be true if the user granted the permissions.
-        //     if (granted) {
-        //         console.log('Permission granted!');
-        if (twitchGtaUrl.test(window.location.href)) {
-            chrome.runtime.sendMessage({
-                msgType: 'get-fb-streams',
-                msgData: {
-                    channelsFb: live.channelsFb,
-                    tick: live.tick,
-                    fbDebounce: live.fbDebounce,
-                    fbMaxLookup: live.fbMaxLookup,
-                    fbSleep: live.fbSleep,
-                    fbGroupSize: live.fbGroupSize,
-                    fbGroupSleepInc: live.fbGroupSleepInc,
-                    fbRandomRadius: live.fbRandomRadius,
-                    fbLastMajorChange: live.fbLastMajorChange,
-                },
-            }, (response) => {
-                console.log('GOT RESPONSE FOR FB STREAMS:', response);
-                if (response && response.length > 0) {
-                    live.streams = response;
-                    handleStreams();
-                    onSettingChanged();
-                }
-            });
-        }
-        //     } else {
-        //         console.log('Permission denied...');
-        //     }
-        // });
 
         handleStreams();
         console.log('streamsMap', streamsMap);
@@ -380,28 +267,25 @@ const filterStreams = async () => { // Remember: The code here runs upon loading
         }
     };
 
-    // If tnoReloadDefault hasn't been manually set yet then set to false if sort=Recommended, else set to true
-    let [tnoStatus, tnoEnglish, tnoPublic, tnoInternational, tnoOthers, tnoWlOverride, tnoSearch, tnoScrolling, tnoAlwaysCustom, tnoReloadDefault, tnoAllowAll] = await getStorage([
-        ['tnoStatus', true],
-        ['tnoEnglish', true],
-        ['tnoPublic', false],
-        ['tnoInternational', false],
-        ['tnoOthers', false],
-        ['tnoWlOverride', true],
-        ['tnoSearch', true],
-        ['tnoScrolling', false],
-        ['tnoAlwaysCustom', false],
-        ['tnoReloadDefault', false],
-        ['tnoAllowAll', false],
+    // If twrpoReloadDefault hasn't been manually set yet then set to false if sort=Recommended, else set to true
+    let [twrpoStatus, twrpoEnglish, twrpoOthers, twrpoSearch, twrpoScrolling, twrpoAlwaysCustom, twrpoReloadDefault, twrpoAllowAll] = await getStorage([
+        ['twrpoStatus', true],
+        ['twrpoEnglish', true],
+        ['twrpoOthers', false],
+        ['twrpoSearch', true],
+        ['twrpoScrolling', false],
+        ['twrpoAlwaysCustom', false],
+        ['twrpoReloadDefault', false],
+        ['twrpoAllowAll', false],
     ]);
 
-    const filterEnabled = !isDeveloper || !tnoAllowAll; // Fail-safe incase extension accidentally gets published with tnoAllowAll enabled
+    const filterEnabled = !isDeveloper || !twrpoAllowAll; // Fail-safe incase extension accidentally gets published with twrpoAllowAll enabled
 
     let isDeleting = false;
     let minLoadedViewers = null;
     let minLoadedText = null;
     let rollStart = 0;
-    let alwaysRoll = tnoAlwaysCustom;
+    let alwaysRoll = twrpoAlwaysCustom;
 
     realViews = REAL_VIEWS.get(alwaysRoll);
     const rollAddMax = 30;
@@ -521,13 +405,6 @@ const filterStreams = async () => { // Remember: The code here runs upon loading
         elements.splice(baseIdx + 1, 0, article);
     };
 
-    const getChannelNameFromEl = (element, fromArticle = false) => {
-        if (fromArticle) element = getMainElFromArticle(element);
-        const channelEl = element.querySelector("a[data-a-target='preview-card-channel-link']");
-        const channelElNode = [...channelEl.childNodes].find(node => node.nodeType === 3);
-        const channelName = channelElNode.textContent.toLowerCase();
-    };
-
     const deleteOthers = () => {
         if (onPage == false) return;
         // if (onPage == false || isDeleting === true) return;
@@ -539,7 +416,7 @@ const filterStreams = async () => { // Remember: The code here runs upon loading
         // const useTextColor = isDark ? '#000' : '#f7f7f8';
         const isRealView = onRealView();
         const isUniversalFaction = onUniversalFaction();
-        const isNpMetaFaction = onNpMetaFaction();
+        const isNpMetaFaction = onWrpMetaFaction();
         const minViewersUse = isNpMetaFaction ? minViewers : 3;
 
         const allElements = Array.from(document.getElementsByTagName('article'));
@@ -550,7 +427,7 @@ const filterStreams = async () => { // Remember: The code here runs upon loading
 
         let isFirstRemove = true;
         if (elements.length > 0 || !wasZero) {
-            console.log('[TNO] _There are so many elements:', elements.length);
+            console.log('[TWRPO] _There are so many elements:', elements.length);
             wasZero = elements.length === 0;
         }
 
@@ -572,7 +449,6 @@ const filterStreams = async () => { // Remember: The code here runs upon loading
             const isManualStream = element.classList.contains('npManual');
             element.classList.add('npChecked');
             element = getMainElFromArticle(element);
-            const titleEl = element.querySelector('h3');
             const channelEl = element.querySelector("a[data-a-target='preview-card-channel-link']");
             const channelElNode = [...channelEl.childNodes].find(node => node.nodeType === 3);
             let liveElDiv = element.getElementsByClassName('tw-channel-status-text-indicator')[0];
@@ -599,10 +475,7 @@ const filterStreams = async () => { // Remember: The code here runs upon loading
             const stream = streamsMap[channelName];
 
             const nowFilterEnabled = filterEnabled && filterStreamFaction !== 'alltwitch';
-            const tnoWlOverrideNow = tnoWlOverride && stream && stream.wlOverride && isNpMetaFaction;
-            const tnoOthersNow = tnoOthers || filterStreamFaction === 'other' || tnoWlOverrideNow;
-            const tnoPublicNow = tnoPublic || filterStreamFaction === 'publicnp' || tnoWlOverrideNow;
-            const tnoInternationalNow = tnoInternational || filterStreamFaction === 'international' || tnoWlOverrideNow;
+            const twrpoOthersNow = twrpoOthers || filterStreamFaction === 'other';
 
             if (isRealView && insertAfterReal[channelName]) {
                 const addStream = insertAfterReal[channelName];
@@ -629,27 +502,20 @@ const filterStreams = async () => { // Remember: The code here runs upon loading
                         // Not an RP stream
                         streamState = FSTATES.remove;
                     } else if (stream.tagFaction === 'other') {
-                        // Non-NoPixel RP stream
-                        if (tnoOthersNow || stream.noOthersInclude) {
+                        // Non-WildRP RP stream
+                        if (twrpoOthersNow) {
                             streamState = FSTATES.other;
                         } else {
                             streamState = FSTATES.remove;
                         }
                     } else {
-                        // NoPixel stream
-                        if ((tnoPublicNow || stream.noPublicInclude) && (tnoInternationalNow || stream.noInternationalInclude)) {
-                            // NoPixel Public if allowed or NoPixel International if allowed or NoPixel WL Stream
-                            streamState = FSTATES.nopixel;
-                        } else {
-                            // Public/International stream when not allowed
-                            streamState = FSTATES.remove;
-                        }
+                        streamState = FSTATES.wildrp;
                     }
                 } else {
                     if (stream && stream.tagFaction !== 'other') {
-                        // If NoPixel streamer that isn't on another server
-                        if (isUniversalFaction || isFilteringText || ((tnoPublicNow || stream.noPublicInclude) && (tnoInternationalNow || stream.noInternationalInclude))) {
-                            streamState = FSTATES.nopixel;
+                        // If WildRP streamer that isn't on another server
+                        if (isUniversalFaction || isFilteringText) {
+                            streamState = FSTATES.wildrp;
                         } else {
                             // Public/International stream when not allowed and using filter
                             streamState = FSTATES.remove;
@@ -683,8 +549,8 @@ const filterStreams = async () => { // Remember: The code here runs upon loading
                     liveEl.style.setProperty('text-transform', 'none', 'important');
                     liveEl.textContent = streamPossible.tagText ? streamPossible.tagText : '';
                 }
-            } else if (streamState === FSTATES.nopixel) {
-                // NoPixel stream
+            } else if (streamState === FSTATES.wildrp) {
+                // WildRP stream
                 if (element.style.display === 'none') {
                     element.style.display = null;
                 }
@@ -710,7 +576,7 @@ const filterStreams = async () => { // Remember: The code here runs upon loading
                         } else {
                             if (stream.factionsMap[filterStreamFaction]) {
                                 allowStream = true;
-                            } else if (filterStreamFaction === 'independent' && stream.factionsMap.othernp) {
+                            } else if (filterStreamFaction === 'independent' && stream.factionsMap.otherwrp) {
                                 allowStream = true;
                             } else {
                                 allowStream = false;
@@ -761,9 +627,9 @@ const filterStreams = async () => { // Remember: The code here runs upon loading
                         if (stopOnMin) {
                             clearInterval(interval);
                             interval = null;
-                            console.log('[TNO] Finished.');
+                            console.log('[TWRPO] Finished.');
                         } else {
-                            console.log('[TNO] Clearing stream thumbnails with low viewers');
+                            console.log('[WTRPO] Clearing stream thumbnails with low viewers');
                         }
                     }
                     element.style.visibility = 'hidden';
@@ -775,7 +641,7 @@ const filterStreams = async () => { // Remember: The code here runs upon loading
                     // element.outerHTML = '';
                     // element.parentNode.removeChild(element);
                     element.style.display = 'none';
-                    console.log('[TNO] Deleted');
+                    console.log('[TWRPO] Deleted');
                 }
                 if (isFirstRemove) isFirstRemove = false;
             } else {
@@ -793,7 +659,7 @@ const filterStreams = async () => { // Remember: The code here runs upon loading
             // }
         }
 
-        if (tnoScrolling && elements.length > 0 && prevWasZero) {
+        if (twrpoScrolling && elements.length > 0 && prevWasZero) {
             const $scrollDiv = $('div.root-scrollable.scrollable-area').find('> div.simplebar-scroll-content');
             const bottomRem = $scrollDiv[0].scrollHeight - $scrollDiv.height() - $scrollDiv.scrollTop();
             // console.log('after-deletion bottomRem:', bottomRem);
@@ -833,7 +699,7 @@ const filterStreams = async () => { // Remember: The code here runs upon loading
         return 'English';
     };
 
-    // Automatically select English tag for GTAV
+    // Automatically select English tag for RDR2
     const selectEnglish = async () => {
         await waitForElement('div.animated-tag--no-bounce, button[data-a-target="form-tag-add-filter-suggested"]');
 
@@ -923,7 +789,7 @@ const filterStreams = async () => { // Remember: The code here runs upon loading
         if (document.querySelector('.tno-settings-btn') != null) return; // Switching from clips/videos back to channels
 
         const $container = $followBtn.parent().parent();
-        const $setEnglishBtn = $('<button>⚙️ Twitch NoPixel Only</button>');
+        const $setEnglishBtn = $('<button>⚙️ Twitch WildRP Only</button>');
         $setEnglishBtn.addClass($followBtn.attr('class'));
         $setEnglishBtn.addClass('tno-settings-btn');
         $setEnglishBtn.css({
@@ -935,50 +801,30 @@ const filterStreams = async () => { // Remember: The code here runs upon loading
         $setEnglishBtn.click(() => {
             Swal.fire({
                 // icon: 'info',
-                // title: 'TNO Settings',
+                // title: 'TWRPO Settings',
                 html: `
                     <div class="tno-settings-container">
                         <div class="settings-titles">
-                            <span class="settings-title">TNO Settings</span>
+                            <span class="settings-title">TWRPO Settings</span>
                             <span class="tno-reload settings-reload">&#x27f3;</span>
                         </div>
                         <div class="settings-options">
                             <div class="settings-option">
                                 <span class="settings-name bold">Enabled:</span>
                                 <span class="settings-value">
-                                    <input id="setting-status" type="checkbox" class="toggle" ${tnoStatus ? 'checked' : ''}>
-                                </span>
-                            </div>
-                            <div class="settings-option">
-                                <span class="settings-name"><span class="bold">Show</span> NoPixel public streams:</span>
-                                <span class="settings-value">
-                                    <input id="setting-public" type="checkbox" class="toggle" ${tnoPublic ? 'checked' : ''}>
-                                </span>
-                            </div>
-                            <div class="settings-option">
-                                <span class="settings-name"><span class="bold">Show</span> NoPixel international streams:</span>
-                                <span class="settings-value">
-                                    <input id="setting-international" type="checkbox" class="toggle" ${tnoInternational ? 'checked' : ''}>
+                                    <input id="setting-status" type="checkbox" class="toggle" ${twrpoStatus ? 'checked' : ''}>
                                 </span>
                             </div>
                             <div class="settings-option">
                                 <span class="settings-name"><span class="bold">Show</span> other roleplay servers:</span>
                                 <span class="settings-value">
-                                    <input id="setting-others" type="checkbox" class="toggle" ${tnoOthers ? 'checked' : ''}>
-                                </span>
-                            </div>
-                            <div class="settings-option">
-                                <span class="settings-name tooltip">Always <span class="bold">show</span> streamers who would<br/>normally be on the WL server:
-                                    <span class="tooltiptext tooltiptext-hover">Overrides the "show" settings above to always include streamers from NoPixel-Whitelist, such as Buddha, when they play on another server (such as NoPixel Public).</span>
-                                </span>
-                                <span class="settings-value">
-                                    <input id="setting-wl-override" type="checkbox" class="toggle" ${tnoWlOverride ? 'checked' : ''}>
+                                    <input id="setting-others" type="checkbox" class="toggle" ${twrpoOthers ? 'checked' : ''}>
                                 </span>
                             </div>
                             <div class="settings-option">
                                 <span class="settings-name">View search box:</span>
                                 <span class="settings-value">
-                                    <input id="setting-search" type="checkbox" class="toggle" ${tnoSearch ? 'checked' : ''}>
+                                    <input id="setting-search" type="checkbox" class="toggle" ${twrpoSearch ? 'checked' : ''}>
                                 </span>
                             </div>
                             <div class="settings-option">
@@ -986,26 +832,26 @@ const filterStreams = async () => { // Remember: The code here runs upon loading
                                     <span class="tooltiptext tooltiptext-hover">Reduces scrolling lag by making Twitch only fetch one batch of new streams after scrolling to the page bottom.</span>
                                 </span>
                                 <span class="settings-value">
-                                    <input id="setting-scrolling" type="checkbox" class="toggle" ${tnoScrolling ? 'checked' : ''}>
+                                    <input id="setting-scrolling" type="checkbox" class="toggle" ${twrpoScrolling ? 'checked' : ''}>
                                 </span>
                             </div>
                             <div class="settings-option">
                                 <span class="settings-name">Force "English" only (<em>recommended</em>):</span>
                                 <span class="settings-value">
-                                    <input id="setting-english" type="checkbox" class="toggle" ${tnoEnglish ? 'checked' : ''}>
+                                    <input id="setting-english" type="checkbox" class="toggle" ${twrpoEnglish ? 'checked' : ''}>
                                 </span>
                             </div>
                             <div class="settings-option">
                                 <span class="settings-name tooltip">Use custom stream elements instead of filtering:
                                 <span class="tooltiptext tooltiptext-hover tooltiptext-wider1">
                                     When you use the "Filter streams" dropdown to view a faction, it works by hiding all streams on the page and creating new custom ones that look the same.
-                                    Enabling this setting will use the same system on the default view. The benefit of this is no lag/delay when scrolling down, even to the 1 viewer NoPixel streams.
+                                    Enabling this setting will use the same system on the default view. The benefit of this is no lag/delay when scrolling down, even to the 1 viewer WildRP streams.
                                     The downside is if you sort streams by Recommended, the order of streams will instead be based on viewcount.<br/>
                                     It could also temporarily break if Twitch updates their site (in which case just disable this setting for a few days).
                                 </span>
                                 </span>
                                 <span class="settings-value">
-                                    <input id="setting-custom" type="checkbox" class="toggle" ${tnoAlwaysCustom ? 'checked' : ''}>
+                                    <input id="setting-custom" type="checkbox" class="toggle" ${twrpoAlwaysCustom ? 'checked' : ''}>
                                 </span>
                             </div>
                             <div class="settings-option">
@@ -1013,7 +859,7 @@ const filterStreams = async () => { // Remember: The code here runs upon loading
                                     <span class="tooltiptext tooltiptext-hover">Clicking the green refresh button while viewing a faction will also refresh the default view. Uses custom stream elements.</span>
                                 </span>
                                 <span class="settings-value">
-                                    <input id="setting-reload-def" type="checkbox" class="toggle" ${tnoReloadDefault ? 'checked' : ''}>
+                                    <input id="setting-reload-def" type="checkbox" class="toggle" ${twrpoReloadDefault ? 'checked' : ''}>
                                 </span>
                             </div>
                             ${
@@ -1022,7 +868,7 @@ const filterStreams = async () => { // Remember: The code here runs upon loading
                             <div class="settings-option">
                                 <span class="settings-name">Enable filtering</span>
                                 <span class="settings-value">
-                                    <input id="setting-show-all" type="checkbox" class="toggle" ${!tnoAllowAll ? 'checked' : ''}>
+                                    <input id="setting-show-all" type="checkbox" class="toggle" ${!twrpoAllowAll ? 'checked' : ''}>
                                 </span>
                             </div>
                             `
@@ -1041,10 +887,7 @@ const filterStreams = async () => { // Remember: The code here runs upon loading
                     const $settingEnglish = $('#setting-english');
                     const $settingSearch = $('#setting-search');
                     const $settingScrolling = $('#setting-scrolling');
-                    const $settingPublic = $('#setting-public');
-                    const $settingInternational = $('#setting-international');
                     const $settingOthers = $('#setting-others');
-                    const $settingWlOverride = $('#setting-wl-override');
                     const $settingCustom = $('#setting-custom');
                     const $settingReloadDef = $('#setting-reload-def');
                     const $settingShowAll = $('#setting-show-all');
@@ -1053,70 +896,46 @@ const filterStreams = async () => { // Remember: The code here runs upon loading
 
                     $settingStatus.change(function () {
                         const newValue = this.checked;
-                        setStorage('tnoStatus', newValue);
-                        tnoStatus = newValue;
+                        setStorage('twrpoStatus', newValue);
+                        twrpoStatus = newValue;
                         console.log('Set status to:', newValue);
                     });
 
                     $settingEnglish.change(function () {
                         const newValue = this.checked;
-                        setStorage('tnoEnglish', newValue);
-                        tnoEnglish = newValue;
+                        setStorage('twrpoEnglish', newValue);
+                        twrpoEnglish = newValue;
                         console.log('Set force-english to:', newValue);
                     });
 
                     $settingSearch.change(function () {
                         const newValue = this.checked;
-                        setStorage('tnoSearch', newValue);
-                        tnoSearch = newValue;
+                        setStorage('twrpoSearch', newValue);
+                        twrpoSearch = newValue;
                         console.log('Set view-search to:', newValue);
                         onSettingChanged();
                     });
 
                     $settingScrolling.change(function () {
                         const newValue = this.checked;
-                        setStorage('tnoScrolling', newValue);
-                        tnoScrolling = newValue;
+                        setStorage('twrpoScrolling', newValue);
+                        twrpoScrolling = newValue;
                         console.log('Set scrolling-adjustments to:', newValue);
-                        onSettingChanged();
-                    });
-
-                    $settingPublic.change(function () {
-                        const newValue = this.checked; // Reverse for remove
-                        setStorage('tnoPublic', newValue);
-                        tnoPublic = newValue;
-                        console.log('Set include-public to:', newValue);
-                        onSettingChanged();
-                    });
-
-                    $settingInternational.change(function () {
-                        const newValue = this.checked; // Reverse for remove
-                        setStorage('tnoInternational', newValue);
-                        tnoInternational = newValue;
-                        console.log('Set include-international to:', newValue);
                         onSettingChanged();
                     });
 
                     $settingOthers.change(function () {
                         const newValue = this.checked; // Reverse for remove
-                        setStorage('tnoOthers', newValue);
-                        tnoOthers = newValue;
+                        setStorage('twrpoOthers', newValue);
+                        twrpoOthers = newValue;
                         console.log('Set include-others to:', newValue);
-                        onSettingChanged();
-                    });
-
-                    $settingWlOverride.change(function () {
-                        const newValue = this.checked;
-                        setStorage('tnoWlOverride', newValue);
-                        tnoWlOverride = newValue;
-                        console.log('Set wl-override to:', newValue);
                         onSettingChanged();
                     });
 
                     $settingCustom.change(function () {
                         const newValue = this.checked;
-                        setStorage('tnoAlwaysCustom', newValue);
-                        tnoAlwaysCustom = newValue;
+                        setStorage('twrpoAlwaysCustom', newValue);
+                        twrpoAlwaysCustom = newValue;
                         alwaysRoll = newValue;
                         realViews = REAL_VIEWS.get(alwaysRoll);
                         if (newValue === false) rollStart = 0;
@@ -1126,8 +945,8 @@ const filterStreams = async () => { // Remember: The code here runs upon loading
 
                     $settingReloadDef.change(function () {
                         const newValue = this.checked;
-                        setStorage('tnoReloadDefault', newValue);
-                        tnoReloadDefault = newValue;
+                        setStorage('twrpoReloadDefault', newValue);
+                        twrpoReloadDefault = newValue;
                         console.log('Set reload-default to:', newValue);
                         onSettingChanged();
                     });
@@ -1135,8 +954,8 @@ const filterStreams = async () => { // Remember: The code here runs upon loading
                     if ($settingShowAll) {
                         $settingShowAll.change(function () {
                             const newValue = !this.checked;
-                            setStorage('tnoAllowAll', newValue);
-                            tnoAllowAll = newValue;
+                            setStorage('twrpoAllowAll', newValue);
+                            twrpoAllowAll = newValue;
                             console.log('Set show-all to:', newValue);
                             onSettingChanged();
                         });
@@ -1212,7 +1031,7 @@ const filterStreams = async () => { // Remember: The code here runs upon loading
                             return stream.tagFactionSecondary === filterStreamFaction;
                         }
                         if (stream.factionsMap[filterStreamFaction]) return true;
-                        if (filterStreamFaction === 'independent' && stream.factionsMap.othernp) return true;
+                        if (filterStreamFaction === 'independent' && stream.factionsMap.otherwrp) return true;
                         return false;
                     });
                 }
@@ -1241,7 +1060,7 @@ const filterStreams = async () => { // Remember: The code here runs upon loading
         const filterReloadBtn = document.querySelector('.filter-reload');
         const isDefaultView = onDefaultView();
         const isRealView = onRealView() && !isDefaultView; // all-twitch
-        const showOnDefaultNow = isDefaultView && (alwaysRoll || tnoReloadDefault);
+        const showOnDefaultNow = isDefaultView && (alwaysRoll || twrpoReloadDefault);
 
         if (isFilteringText || showOnDefaultNow || (isRealView === false && isDefaultView === false)) { // Filtering text or showable-on-default or not universal
             removeClass(filterReloadBtn, 'tno-hide', 'tno-other'); // Full button
@@ -1282,8 +1101,6 @@ const filterStreams = async () => { // Remember: The code here runs upon loading
         const elSelectCustomInput = elSelectCustomOpts.children[0];
         const customOptsList = Array.from(elSelectCustomOpts.children);
         const optionsCount = customOptsList.length;
-        const defaultLabel = elSelectCustomBox.getAttribute('data-value');
-        const filterReloadBox = elSelectCustom.querySelector('.filter-reload-box');
         const filterReloadBtn = elSelectCustom.querySelector('.filter-reload');
 
         let optionChecked = null;
@@ -1484,7 +1301,7 @@ const filterStreams = async () => { // Remember: The code here runs upon loading
             console.log('Refreshing streams...');
             timeId = `?${new Date().getTime()}`;
             rollStart = 0;
-            if (onDefaultView() || tnoReloadDefault) {
+            if (onDefaultView() || twrpoReloadDefault) {
                 alwaysRoll = true;
                 realViews = REAL_VIEWS.get(alwaysRoll);
             }
@@ -1561,11 +1378,9 @@ const filterStreams = async () => { // Remember: The code here runs upon loading
     };
 
     const genDefaultFaction = () => {
-        let baseWord = 'NoPixel';
+        let baseWord = 'WildRP';
         const flagWords = [];
-        if (tnoOthers) baseWord = 'RP';
-        if (!tnoPublic) flagWords.push('-WL');
-        if (!tnoInternational) flagWords.push('-U.S.');
+        if (twrpoOthers) baseWord = 'RP';
         return `All ${baseWord}${flagWords.join('')} (Default)`;
     };
 
@@ -1587,19 +1402,6 @@ const filterStreams = async () => { // Remember: The code here runs upon loading
         const filterFactions = live.filterFactions;
         filterFactions[0][1] = genDefaultFaction();
 
-        if (!tnoPublic || !tnoInternational) {
-            // Faction counts unaffected by TNO settings for WL vs non-WL etc.
-            const factionCountSpecial = { allnopixel: true, alltwitch: true, publicnp: true, international: true, other: true };
-            filterFactions.forEach((data) => {
-                if (data[2] === false) return;
-                const mini = data[0];
-                const existsWl = factionCountSpecial[mini]
-                    ? live.factionCount[mini] > 0
-                    : live.streams.some(stream => !!stream.factionsMap[mini] && (tnoPublic || stream.noPublicInclude) && (tnoInternational || stream.noInternationalInclude));
-                if (!existsWl) data[2] = false;
-            });
-        }
-
         if (isDeveloper) {
             const guessedIdx = filterFactions.findIndex(data => data[0] === 'guessed');
             if (guessedIdx && filterFactions[guessedIdx][2] === true) {
@@ -1618,7 +1420,7 @@ const filterStreams = async () => { // Remember: The code here runs upon loading
 
         console.log('>>>>>>>>>>>> setup filter');
 
-        const showOnDefault = alwaysRoll || tnoReloadDefault;
+        const showOnDefault = alwaysRoll || twrpoReloadDefault;
 
         // const isRealView = onRealView();
 
@@ -1631,14 +1433,14 @@ const filterStreams = async () => { // Remember: The code here runs upon loading
                         <div class="selectCustom-row${!isDark ? ' lightmodeScreen' : ''}">
                             <div class="filter-reload-box tooltip">
                                 <span id="tno-reload-message" class="tooltiptext tooltiptext-hover tooltiptext-wider2">
-                                    Refresh live NoPixel data —<br/>
+                                    Refresh live WildRP data —<br/>
                                     Click once to update streams on all filters${(alwaysRoll || showOnDefault) ? ` and the default view.<br/><br/>
                                     To stop the default view being refreshed, use the settings menu<br/>
-                                    (⚙️ Twitch NoPixel Only button).
+                                    (⚙️ Twitch WildRP Only button).
                                     ` : `.<br/><br/>
                                     This will only refresh the default view when clicked without viewing a faction<br/>(dark green refresh button).<br/><br/>
                                     To make the refresh button always update the default view, use the settings menu<br/>
-                                    (⚙️ Twitch NoPixel Only button).
+                                    (⚙️ Twitch WildRP Only button).
                                     `}
                                 </span>
                                 <span class="tno-reload filter-reload">&#x27f3;</span>
@@ -1674,7 +1476,7 @@ const filterStreams = async () => { // Remember: The code here runs upon loading
     setupFilter = async () => {
         const [$groupDiv] = await setupFilterFactions();
 
-        if (tnoSearch) {
+        if (twrpoSearch) {
             $groupDiv.css({ position: 'relative' });
 
             const $searchDiv = $('<div class="tno-search-div"></div>');
@@ -1696,45 +1498,42 @@ const filterStreams = async () => { // Remember: The code here runs upon loading
         }
     };
 
-    onPage = twitchGtaUrl.test(window.location.href);
+    onPage = twitchRdr2Url.test(window.location.href);
 
     activateInterval = async () => {
         // Remember that this will run twice without reloading when switching from Clips/Videos back to channels
         if (interval != null) {
-            console.log("[TNO] Couldn't start interval (already running)");
+            console.log("[TWRPO] Couldn't start interval (already running)");
             return false;
         }
 
         await fixSortType();
 
-        [tnoStatus, tnoEnglish, tnoPublic, tnoInternational, tnoOthers, tnoWlOverride, tnoSearch, tnoScrolling, tnoAlwaysCustom, tnoReloadDefault, tnoAllowAll] = await getStorage([
-            ['tnoStatus', true],
-            ['tnoEnglish', true],
-            ['tnoPublic', false],
-            ['tnoInternational', false],
-            ['tnoOthers', false],
-            ['tnoWlOverride', true],
-            ['tnoSearch', true],
-            ['tnoScrolling', false],
-            ['tnoAlwaysCustom', false],
-            ['tnoReloadDefault', sortType !== SORTS.recommended],
-            ['tnoAllowAll', false],
+        [twrpoStatus, twrpoEnglish, twrpoOthers, twrpoSearch, twrpoScrolling, twrpoAlwaysCustom, twrpoReloadDefault, twrpoAllowAll] = await getStorage([
+            ['twrpoStatus', true],
+            ['twrpoEnglish', true],
+            ['twrpoOthers', false],
+            ['twrpoSearch', true],
+            ['twrpoScrolling', false],
+            ['twrpoAlwaysCustom', false],
+            ['twrpoReloadDefault', sortType !== SORTS.recommended],
+            ['twrpoAllowAll', false],
         ]);
 
-        alwaysRoll = tnoAlwaysCustom;
+        alwaysRoll = twrpoAlwaysCustom;
         realViews = REAL_VIEWS.get(alwaysRoll);
         rollStart = 0;
 
         addSettings(); // Settings should show even if status disabled
 
-        if (tnoStatus === false) {
-            console.log("[TNO] Couldn't start interval (status set to disabled)");
+        if (twrpoStatus === false) {
+            console.log("[TWRPO] Couldn't start interval (status set to disabled)");
             return false;
         }
 
-        filterStreamFaction = 'allnopixel';
+        filterStreamFaction = 'allwildrp';
 
-        if (tnoEnglish) {
+        if (twrpoEnglish) {
             selectEnglish();
         }
 
@@ -1744,7 +1543,7 @@ const filterStreams = async () => { // Remember: The code here runs upon loading
             addFactionStreams(undefined);
         }
 
-        console.log('[TNO] Starting interval');
+        console.log('[TWRPO] Starting interval');
         startDeleting();
 
         return true;
@@ -1752,11 +1551,11 @@ const filterStreams = async () => { // Remember: The code here runs upon loading
 
     stopInterval = () => {
         if (interval == null) {
-            console.log("[TNO] Couldn't stop interval (already ended)");
+            console.log("[TRWPO] Couldn't stop interval (already ended)");
             return false;
         }
 
-        console.log('[TNO] Stopping interval');
+        console.log('[TWRP] Stopping interval');
         clearInterval(interval);
         interval = null;
 
@@ -1774,7 +1573,7 @@ filterStreams();
 
 // Twitch switches page without any reloading:
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-    console.log('[TNO] PAGE STATUS:', request);
+    console.log('[TWRPO] PAGE STATUS:', request);
     if (request.status === 'START') {
         onPage = true;
         if (activateInterval != null) activateInterval();

@@ -1,6 +1,6 @@
 {
-    "name": "Twitch NoPixel Only",
-    "description": "Automatic filtering and coloring for NoPixel streams on Twitch's GTA page!",
+    "name": "Twitch WildRP Only",
+    "description": "Automatic filtering and coloring for WildRP streams on Twitch's RDR2 page!",
     "version": "1.13.4",
     "manifest_version": 3,
     "icons": {
@@ -19,7 +19,7 @@
             "48": "images/icon-48.png",
             "128": "images/icon-128.png"
         },
-        "default_title": "Twitch NoPixel Only"
+        "default_title": "Twitch WildRP Only"
     },
     "content_scripts": [
         {
@@ -41,7 +41,6 @@
         "storage"
     ],
     "host_permissions": [
-        "https://vaeb.io/*",
-        "https://*.facebook.com/gaming/*"
+        "https://twrponly.tv/*"
     ]
 }
