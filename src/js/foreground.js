@@ -1587,6 +1587,7 @@ const filterStreams = async () => { // Remember: The code here runs upon loading
         setupFilter();
 
         if (alwaysRoll) {
+            await waitForElement(insertionElementSelector);
             addFactionStreams(undefined);
         }
 
