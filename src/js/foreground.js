@@ -200,6 +200,7 @@ const filterStreams = async () => { // Remember: The code here runs upon loading
         const fetchHeaders = new Headers();
         fetchHeaders.append('pragma', 'no-cache');
         fetchHeaders.append('cache-control', 'no-cache');
+        fetchHeaders.append('TWRPO-Extension-Version', chrome.runtime.getManifest().version);
 
         // https://twrponly.tc | http://localhost:3029
         const dataRequest = new Request('https://twrponly.tv/live'); // API code is open-source: https://github.com/bcbray/TWRPO-Backend
@@ -208,7 +209,9 @@ const filterStreams = async () => { // Remember: The code here runs upon loading
         const maxTries = 4;
         for (let i = 0; i < maxTries; i++) {
             try {
-                const fetchResult = await fetch(dataRequest);
+                const fetchResult = await fetch(dataRequest, {
+                    headers: fetchHeaders,
+                });
                 live = await fetchResult.json();
                 break;
             } catch (err) {
