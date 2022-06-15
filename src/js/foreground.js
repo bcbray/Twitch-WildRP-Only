@@ -83,6 +83,8 @@ const waitForElement = async (selector, maxTime = Infinity) => {
     return el;
 };
 
+const getAncester = (el, count) => count > 0 ? getAncester(el.parentElement, count - 1) : el;
+
 const twitchRdr2Url = /^https:\/\/www\.twitch\.tv\/directory\/game\/Red%20Dead%20Redemption%202(?!\/videos|\/clips)/;
 
 // Settings
@@ -108,6 +110,19 @@ let isFilteringText = false;
 let useColors = {};
 let useColorsDark = {};
 let useColorsLight = {};
+
+let targetElementSelector;
+let hopsToMainAncestor;
+let channelNameElementSelector;
+let liveBadgeElementSelector;
+let liveBadgeContentElementSelector;
+let viewersBadgeElementSelector;
+let mainScrollSelector;
+let settingsTargetElementSelector;
+let hopsToSettingsContainerAncestor;
+let insertionElementSelector;
+
+
 
 const FSTATES = {
     remove: 0,
@@ -185,6 +200,7 @@ const filterStreams = async () => { // Remember: The code here runs upon loading
         const fetchHeaders = new Headers();
         fetchHeaders.append('pragma', 'no-cache');
         fetchHeaders.append('cache-control', 'no-cache');
+        fetchHeaders.append('TWRPO-Extension-Version', chrome.runtime.getManifest().version);
 
         // https://twrponly.tc | http://localhost:3029
         const dataRequest = new Request('https://twrponly.tv/live'); // API code is open-source: https://github.com/bcbray/TWRPO-Backend
@@ -193,7 +209,9 @@ const filterStreams = async () => { // Remember: The code here runs upon loading
         const maxTries = 4;
         for (let i = 0; i < maxTries; i++) {
             try {
-                const fetchResult = await fetch(dataRequest);
+                const fetchResult = await fetch(dataRequest, {
+                    headers: fetchHeaders,
+                });
                 live = await fetchResult.json();
                 break;
             } catch (err) {
@@ -222,7 +240,27 @@ const filterStreams = async () => { // Remember: The code here runs upon loading
         //     console.log('filter and streams ready');
         // });
 
-        ({ minViewers, stopOnMin, intervalSeconds, useColorsDark, useColorsLight, baseHtml, baseHtmlFb } = live);
+        ({
+            minViewers,
+            stopOnMin,
+            intervalSeconds,
+            useColorsDark,
+            useColorsLight,
+            baseHtml,
+            baseHtmlFb,
+            injectionConfiguration: {
+                targetElementSelector,
+                hopsToMainAncestor,
+                channelNameElementSelector,
+                liveBadgeElementSelector,
+                liveBadgeContentElementSelector,
+                viewersBadgeElementSelector,
+                mainScrollSelector,
+                settingsTargetElementSelector,
+                hopsToSettingsContainerAncestor,
+                insertionElementSelector
+            },
+        } = live);
 
         console.log(`[${dateStr()}] Fetched data!`);
 
@@ -322,18 +360,16 @@ const filterStreams = async () => { // Remember: The code here runs upon loading
 
     const encodeHtml = str => str.replace(regex, m => `&${escapeChars[m]};`);
 
-    const getMainElFromArticle = el => el.parentElement.parentElement.parentElement.parentElement;
-
     const resetFiltering = (onlyChecked = false) => {
         if (!onlyChecked) {
-            const manualElements = Array.from(document.getElementsByTagName('article')).filter(element => element.classList.contains('npManual'));
+            const manualElements = Array.from(document.querySelectorAll(targetElementSelector)).filter(element => element.classList.contains('npManual'));
             console.log('removing', manualElements.length, 'manual elements');
             for (const element of manualElements) {
-                getMainElFromArticle(element).remove();
+                getAncester(element, hopsToMainAncestor).remove();
             }
         }
 
-        const elements = Array.from(document.getElementsByTagName('article')).filter(element => element.classList.contains('npChecked'));
+        const elements = Array.from(document.querySelectorAll(targetElementSelector)).filter(element => element.classList.contains('npChecked'));
         console.log('resetting for', elements.length, 'elements');
         elements.forEach((element) => {
             element.classList.remove('npChecked');
@@ -399,10 +435,10 @@ const filterStreams = async () => { // Remember: The code here runs upon loading
         const cloneHtml = makeStreamHtml(stream);
         element.insertAdjacentHTML('afterEnd', cloneHtml);
         const streamEl = document.querySelector(`#tno-stream-${newIdx}`);
-        const article = streamEl.querySelector('article');
+        const target = streamEl.querySelector(targetElementSelector);
         streamEl.style.order = element.style.order;
         // addClass(article, 'npChecked');
-        elements.splice(baseIdx + 1, 0, article);
+        elements.splice(baseIdx + 1, 0, target);
     };
 
     const deleteOthers = () => {
@@ -419,7 +455,7 @@ const filterStreams = async () => { // Remember: The code here runs upon loading
         const isNpMetaFaction = onWrpMetaFaction();
         const minViewersUse = isNpMetaFaction ? minViewers : 3;
 
-        const allElements = Array.from(document.getElementsByTagName('article'));
+        const allElements = Array.from(document.querySelectorAll(targetElementSelector));
         const elements = allElements.filter(element => !element.classList.contains('npChecked'));
         const streamCount = document.getElementById('streamCount');
 
@@ -448,11 +484,11 @@ const filterStreams = async () => { // Remember: The code here runs upon loading
 
             const isManualStream = element.classList.contains('npManual');
             element.classList.add('npChecked');
-            element = getMainElFromArticle(element);
-            const channelEl = element.querySelector("a[data-a-target='preview-card-channel-link']");
+            element = getAncester(element, hopsToMainAncestor);
+            const channelEl = element.querySelector(channelNameElementSelector);
             const channelElNode = [...channelEl.childNodes].find(node => node.nodeType === 3);
-            let liveElDiv = element.getElementsByClassName('tw-channel-status-text-indicator')[0];
-            const viewers = element.getElementsByClassName('tw-media-card-stat')[0].textContent;
+            let liveElDiv = element.querySelector(liveBadgeElementSelector);
+            const viewers = element.querySelector(viewersBadgeElementSelector).textContent;
 
             let viewersNum = parseFloat(viewers);
             if (viewers.includes('K viewer')) viewersNum *= 1000;
@@ -465,7 +501,7 @@ const filterStreams = async () => { // Remember: The code here runs upon loading
 
             let liveEl;
             if (liveElDiv != null) {
-                liveEl = liveElDiv.children[0];
+                liveEl = liveElDiv.querySelector(liveBadgeContentElementSelector);
             } else {
                 liveElDiv = $('<div>')[0];
                 liveEl = $('<div>')[0];
@@ -526,6 +562,8 @@ const filterStreams = async () => { // Remember: The code here runs upon loading
                 }
             }
 
+            const hoverEl = element.querySelector('.tw-hover-accent-effect');
+
             if (streamState === FSTATES.other) {
                 // Other included RP servers
                 const streamPossible = stream || {};
@@ -548,6 +586,10 @@ const filterStreams = async () => { // Remember: The code here runs upon loading
                     liveEl.style.color = useTextColor;
                     liveEl.style.setProperty('text-transform', 'none', 'important');
                     liveEl.textContent = streamPossible.tagText ? streamPossible.tagText : '';
+
+                    if (hoverEl) {
+                        hoverEl.style.setProperty('--color-accent', useColors.other);
+                    }
                 }
             } else if (streamState === FSTATES.wildrp) {
                 // WildRP stream
@@ -592,6 +634,10 @@ const filterStreams = async () => { // Remember: The code here runs upon loading
                     channelEl.style.color = useColors[stream.tagFaction];
                     liveElDiv.style.backgroundColor = useColorsDark[stream.tagFaction];
                     liveEl.style.color = useTextColor;
+
+                    if (hoverEl) {
+                        hoverEl.style.setProperty('--color-accent', useColors[stream.tagFaction]);
+                    }
                     // if (stream.characterName && stream.characterName.includes(']')) {
                     // const titleMatch = stream.characterName.match(/\[(.*?)\]/);
                     // const title = encodeHtml(titleMatch[1]);
@@ -660,7 +706,7 @@ const filterStreams = async () => { // Remember: The code here runs upon loading
         }
 
         if (twrpoScrolling && elements.length > 0 && prevWasZero) {
-            const $scrollDiv = $('div.root-scrollable.scrollable-area').find('> div.simplebar-scroll-content');
+            const $scrollDiv = $(mainScrollSelector);
             const bottomRem = $scrollDiv[0].scrollHeight - $scrollDiv.height() - $scrollDiv.scrollTop();
             // console.log('after-deletion bottomRem:', bottomRem);
             if (bottomRem < 532) {
@@ -684,10 +730,10 @@ const filterStreams = async () => { // Remember: The code here runs upon loading
 
     const identifyEnglish = () => {
         // Make sure it doesn't run until stream elements (and tags) are fully loaded
-        const streamElements = $('article:visible').toArray();
+        const streamElements = $(targetElementSelector).filter(':visible').toArray();
         for (let i = 0; i < streamElements.length; i++) {
             const streamEl = streamElements[i];
-            const channelName = [...streamEl.querySelector("a[data-a-target='preview-card-channel-link']").childNodes]
+            const channelName = [...streamEl.querySelector(channelNameElementSelector).childNodes]
                 .find(node => node.nodeType === 3)
                 .textContent.toLowerCase();
             const streamTags = streamEl.querySelectorAll('button.tw-tag');
@@ -784,11 +830,13 @@ const filterStreams = async () => { // Remember: The code here runs upon loading
     };
 
     const addSettings = async () => {
-        const $followBtn = $(await waitForElement('[data-test-selector="follow-game-button-component"]'));
+        const followBtn = await waitForElement(settingsTargetElementSelector);
+        const $followBtn = $(followBtn);
 
         if (document.querySelector('.tno-settings-btn') != null) return; // Switching from clips/videos back to channels
 
-        const $container = $followBtn.parent().parent();
+        const container = getAncester(followBtn, hopsToSettingsContainerAncestor);
+        const $container = $(container);
         const $setEnglishBtn = $('<button>⚙️ Twitch WildRP Only</button>');
         $setEnglishBtn.addClass($followBtn.attr('class'));
         $setEnglishBtn.addClass('tno-settings-btn');
@@ -797,6 +845,8 @@ const filterStreams = async () => { // Remember: The code here runs upon loading
             padding: '0 10px',
         });
         $container.append($setEnglishBtn);
+
+        console.log('[TWRPO] Added settings button');
 
         $setEnglishBtn.click(() => {
             Swal.fire({
@@ -1040,7 +1090,7 @@ const filterStreams = async () => { // Remember: The code here runs upon loading
 
         console.log('filtered streams:', streams);
 
-        const baseEl = document.querySelector('[data-target="directory-first-item"]');
+        const baseEl = document.querySelector(insertionElementSelector);
         const baseParent = baseEl.parentElement;
         const wasRoll = rollIds.length > 0;
 
@@ -1540,6 +1590,7 @@ const filterStreams = async () => { // Remember: The code here runs upon loading
         setupFilter();
 
         if (alwaysRoll) {
+            await waitForElement(insertionElementSelector);
             addFactionStreams(undefined);
         }
 
